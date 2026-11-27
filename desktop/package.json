@@ -1,0 +1,29 @@
+{
+  "name": "bentopdf-desktop",
+  "productName": "BentoPDF",
+  "version": "0.0.0",
+  "description": "BentoPDF as an offline desktop app",
+  "homepage": "https://github.com/alam00000/bentopdf",
+  "author": {
+    "name": "BentoPDF Desktop contributors",
+    "email": "noreply@example.com"
+  },
+  "desktopName": "bentopdf-desktop.desktop",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "web": "node scripts/build-web.mjs",
+    "assets": "node scripts/fetch-assets.mjs",
+    "prepare-app": "npm run web && npm run assets",
+    "start": "electron .",
+    "dist:win": "electron-builder --config electron-builder.config.cjs --win portable zip",
+    "dist:linux": "electron-builder --config electron-builder.config.cjs --linux AppImage deb rpm"
+  },
+  "devDependencies": {
+    "electron": "45.2.3",
+    "electron-builder": "26.18.1",
+    "tar": "7.5.22"
+  }
+}

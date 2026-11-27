@@ -1,3 +1,6 @@
+> [!NOTE]
+> **This fork adds an offline desktop build** of BentoPDF: a portable Windows `.exe` and Linux `.AppImage`, `.deb` and `.rpm` packages, with no Docker or web server needed. Downloads are on the [Releases](../../releases) page; see [desktop/README.md](desktop/README.md) for details and build instructions. Everything below is the upstream BentoPDF README.
+
 <p align="center"><img src="public/images/favicon-no-bg.svg" width="80"></p>
 <h1 align="center">BentoPDF</h1>
 <h3 align="center">💖 Thank You to Our Sponsors</h3>

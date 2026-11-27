@@ -1,0 +1,136 @@
+name: Desktop builds
+
+# Builds the BentoPDF desktop app:
+#   Windows: portable .exe and .zip
+#   Linux:   .AppImage, .deb and .rpm
+# Run it manually from the Actions tab, or push a tag like "desktop-v2.8.12"
+# to also publish a GitHub Release with all files attached.
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'desktop-v*'
+
+permissions:
+  contents: write
+
+jobs:
+  web:
+    name: Build web app and offline assets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install desktop tooling
+        working-directory: desktop
+        run: npm ci --no-audit --no-fund
+
+      - name: Build web app (simple mode, local asset URLs)
+        working-directory: desktop
+        run: npm run web
+
+      - name: Download WASM, OCR data and fonts
+        working-directory: desktop
+        run: npm run assets
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-dist
+          path: |
+            desktop/app-dist
+            desktop/build/icon.png
+          retention-days: 3
+
+  windows:
+    name: Package Windows (portable exe + zip)
+    needs: web
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: app-dist
+          path: desktop
+
+      - name: Install desktop tooling
+        working-directory: desktop
+        run: npm ci --no-audit --no-fund
+
+      - name: Package
+        working-directory: desktop
+        run: npx electron-builder --config electron-builder.config.cjs --win portable zip --publish never
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: |
+            desktop/release/*.exe
+            desktop/release/*.zip
+          if-no-files-found: error
+
+  linux:
+    name: Package Linux (AppImage, deb, rpm)
+    needs: web
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install rpm tooling
+        run: sudo apt-get update && sudo apt-get install -y rpm
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: app-dist
+          path: desktop
+
+      - name: Install desktop tooling
+        working-directory: desktop
+        run: npm ci --no-audit --no-fund
+
+      - name: Package
+        working-directory: desktop
+        run: npx electron-builder --config electron-builder.config.cjs --linux AppImage deb rpm --publish never
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: |
+            desktop/release/*.AppImage
+            desktop/release/*.deb
+            desktop/release/*.rpm
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    if: startsWith(github.ref, 'refs/tags/desktop-v')
+    needs: [windows, linux]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          pattern: '{windows,linux}'
+          merge-multiple: true
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" out/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "BentoPDF Desktop ${GITHUB_REF_NAME#desktop-v}" \
+            --notes "Offline desktop build of BentoPDF. See desktop/README.md for details."

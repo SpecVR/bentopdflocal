@@ -1,0 +1,5 @@
+{
+  "port": 47823,
+  "ocrLanguages": ["eng"],
+  "tessdataVersion": "4.0.0_best_int"
+}
